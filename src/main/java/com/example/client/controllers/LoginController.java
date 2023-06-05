@@ -67,10 +67,13 @@ public class LoginController implements ServerResponseListener {
     public void onServerResponse(String response) {
         if (response.startsWith("login")) {
             if(response.equals("login failed username_not_registered")){
-                errorLabel.setText("Username not registere");
+                errorLabel.setText("Username not registered!");
             }
             if(response.equals("login failed wrong_password")){
-                errorLabel.setText("Wrong Password");
+                errorLabel.setText("Wrong password!");
+            }
+            if(response.equals("login failed already_online")){
+                errorLabel.setText("User already online!");
             }
             if(response.equals("login ok")){
                 switchToLobby();
