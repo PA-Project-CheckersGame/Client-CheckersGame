@@ -1,4 +1,5 @@
 package com.example.client.controllers;
+
 import com.example.client.ServerConnection;
 import com.example.client.ServerResponseListener;
 import javafx.fxml.FXML;
@@ -13,8 +14,7 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 
-public class LoginController implements ServerResponseListener {
-
+public class RegisterController implements ServerResponseListener {
     private ServerConnection serverConnection;
     private Stage stage;
     private Scene scene;
@@ -25,30 +25,35 @@ public class LoginController implements ServerResponseListener {
     @FXML
     TextField passwordTextField;
     @FXML
+    TextField retypePasswordTextField;
+    @FXML
     Label errorLabel;
 
-    public LoginController(){}
-
-
+    public RegisterController() {}
 
     @FXML
-    private void login(javafx.event.ActionEvent event) {
-        //extracting credentials from TextFields
+    private void register(javafx.event.ActionEvent event){
         if(usernameTextField.getText().isEmpty()){
             errorLabel.setText("Username can't be empty");
         }else if(passwordTextField.getText().isEmpty()){
             errorLabel.setText("Password can't be empty");
-        }else {
+        } else{
             String username = usernameTextField.getText();
             String password = passwordTextField.getText();
+            String retypePassword = retypePasswordTextField.getText();
 
-            serverConnection.sendRequest("login " + username + " " + password);
+            if(password.equals(retypePassword)){
+                serverConnection.sendRequest("register " + username + " " + password);
+            } else {
+                errorLabel.setText("Passwords don't match!");
+                passwordTextField.clear();
+                retypePasswordTextField.clear();
+            }
         }
     }
-
     @FXML
-    private void switchToRegister(MouseEvent event) throws IOException {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/RegisterScene.fxml"));
+    public void switchToLogin(MouseEvent event) throws IOException {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/LoginScene.fxml"));
         Parent root = loader.load(); // folosim aici obiectul 'loader'
         stage = (Stage)((Node)event.getSource()).getScene().getWindow();
         scene = new Scene(root);
@@ -56,7 +61,7 @@ public class LoginController implements ServerResponseListener {
         stage.show();
 
         // obtin noul controller si ii setez conexiunea la server
-        RegisterController controller = loader.getController(); // 'loader' este acum cunoscut
+        LoginController controller = loader.getController(); // 'loader' este acum cunoscut
         controller.setServerConnection(serverConnection);
     }
 
@@ -71,17 +76,12 @@ public class LoginController implements ServerResponseListener {
 
     @Override
     public void onServerResponse(String response) {
-        if (response.startsWith("login")) {
-            if(response.equals("login failed username_not_registered")){
-                errorLabel.setText("Username not registered!");
+        System.out.println("Am primit de la server: " + response);
+        if (response.startsWith("register")){
+            if (response.equals("register failed username_already_exists")){
+                errorLabel.setText("Username already exists!");
             }
-            if(response.equals("login failed wrong_password")){
-                errorLabel.setText("Wrong password!");
-            }
-            if(response.equals("login failed already_online")){
-                errorLabel.setText("User already online!");
-            }
-            if(response.equals("login ok")){
+            if(response.equals("register ok")){
                 switchToLobby();
                 errorLabel.setText("");
             }

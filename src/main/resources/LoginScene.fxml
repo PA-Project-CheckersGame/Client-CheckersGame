@@ -9,23 +9,23 @@
 
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600" prefWidth="600.0" xmlns="http://javafx.com/javafx/20.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.client.controllers.LoginController">
    <children>
-      <Label layoutX="137.0" layoutY="63.0" text="The Checkers Game">
+      <Label layoutX="140.0" layoutY="59.0" text="The Checkers Game">
          <font>
             <Font name="System Bold" size="35.0" />
          </font>
       </Label>
-      <Label layoutX="232.0" layoutY="146.0" text="Login form:">
+      <Label layoutX="220.0" layoutY="137.0" text="Login form:">
          <font>
             <Font name="System Bold" size="24.0" />
          </font>
       </Label>
-      <Label layoutX="177.0" layoutY="209.0" text="Username:">
+      <Label layoutX="177.0" layoutY="202.0" text="Username:">
          <font>
             <Font size="15.0" />
          </font>
       </Label>
-      <TextField fx:id="usernameTextField" layoutX="177.0" layoutY="242.0" prefHeight="25.0" prefWidth="246.0" promptText="Enter your username" />
-      <Label layoutX="179.0" layoutY="289.0" text="Password:">
+      <TextField fx:id="usernameTextField" layoutX="177.0" layoutY="235.0" prefHeight="25.0" prefWidth="246.0" promptText="Enter your username" />
+      <Label layoutX="179.0" layoutY="282.0" text="Password:">
          <font>
             <Font size="15.0" />
          </font>
@@ -35,17 +35,17 @@
             <Font name="System Bold" size="16.0" />
          </font>
       </Button>
-      <Label layoutX="177.0" layoutY="524.0" prefHeight="17.0" prefWidth="166.0" text="Don't have an account?">
+      <Label layoutX="177.0" layoutY="528.0" prefHeight="17.0" prefWidth="166.0" text="Don't have an account?">
          <font>
             <Font size="14.0" />
          </font>
       </Label>
-      <Label layoutX="326.0" layoutY="524.0" onMouseClicked="#switchToRegister" text="Go to register!">
+      <Label layoutX="326.0" layoutY="528.0" onMouseClicked="#switchToRegister" text="Go to register!">
          <font>
             <Font name="System Bold" size="14.0" />
          </font>
       </Label>
-      <PasswordField fx:id="passwordTextField" layoutX="178.0" layoutY="320.0" prefHeight="25.0" prefWidth="246.0" promptText="Enter your password" />
+      <PasswordField fx:id="passwordTextField" layoutX="178.0" layoutY="313.0" prefHeight="25.0" prefWidth="246.0" promptText="Enter your password" />
       <Label fx:id="errorLabel" alignment="CENTER" contentDisplay="CENTER" layoutX="-2.0" layoutY="455.0" prefHeight="21.0" prefWidth="600.0" textFill="RED">
          <font>
             <Font name="System Bold" size="15.0" />
