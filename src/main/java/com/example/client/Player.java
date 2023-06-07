@@ -2,12 +2,12 @@ package com.example.client;
 
 public class Player {
     private String name = "";
-    private String password = "";
+    private String status = "";
 
     public Player() {}
-    public Player(String name, String password) {
+    public Player(String name, String status) {
         this.name = name;
-        this.password = password;
+        this.status = status;
     }
     public Player(String name){
         this.name = name;
@@ -21,11 +21,11 @@ public class Player {
         this.name = name;
     }
 
-    public String getPassword() {
-        return password;
+    public String getStatus() {
+        return status;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

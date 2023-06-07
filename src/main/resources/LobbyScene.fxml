@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/20.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.client.controllers.LobbyController">
+   <children>
+      <Label alignment="CENTER" contentDisplay="CENTER" layoutY="128.0" prefHeight="26.0" prefWidth="600.0" text="Players">
+         <font>
+            <Font name="System Bold" size="20.0" />
+         </font>
+      </Label>
+      <TableView fx:id="playersTableView" layoutX="20.0" layoutY="168.0" prefHeight="209.0" prefWidth="560.0">
+        <columns>
+          <TableColumn fx:id="usernameColumn" prefWidth="341.7142848968506" text="Username" />
+          <TableColumn fx:id="statusColumn" prefWidth="216.0" text="Status" />
+        </columns>
+      </TableView>
+      <Label alignment="CENTER" contentDisplay="CENTER" layoutY="426.0" prefHeight="26.0" prefWidth="600.0" text="Games">
+         <font>
+            <Font name="System Bold" size="20.0" />
+         </font>
+      </Label>
+      <Separator layoutX="4.0" layoutY="400.0" prefHeight="19.0" prefWidth="600.0" />
+      <TableView fx:id="gamesTableView" layoutX="20.0" layoutY="464.0" prefHeight="209.0" prefWidth="560.0">
+        <columns>
+          <TableColumn fx:id="idColumn" prefWidth="75.0" text="ID" />
+          <TableColumn fx:id="player1Column" prefWidth="247.99993133544922" text="Player1" />
+            <TableColumn fx:id="player2Column" prefWidth="236.0001220703125" text="Player2" />
+        </columns>
+      </TableView>
+      <Button fx:id="createGameButton" layoutX="38.0" layoutY="689.0" mnemonicParsing="false" onAction="#createGame" prefWidth="100.0" text="Create Game" />
+      <Button fx:id="joinGameButton" disable="true" layoutX="175.0" layoutY="689.0" mnemonicParsing="false" onAction="#joinGame" prefWidth="100.0" text="Join Game" />
+      <Separator layoutX="298.0" layoutY="678.0" orientation="VERTICAL" prefHeight="106.0" prefWidth="0.0" />
+      <Button fx:id="logoutButton" layoutX="457.0" layoutY="689.0" mnemonicParsing="false" onAction="#logout" prefWidth="100.0" text="Logout" />
+      <Button fx:id="exitButton" layoutX="457.0" layoutY="739.0" mnemonicParsing="false" onAction="#exit" prefWidth="100.0" text="Exit" />
+      <Button fx:id="deleteGameButton" disable="true" layoutX="38.0" layoutY="739.0" mnemonicParsing="false" onAction="#deleteGame" prefWidth="100.0" text="Delete Game" />
+      <Button fx:id="leaveGameButton" disable="true" layoutX="174.0" layoutY="739.0" mnemonicParsing="false" onAction="#leaveGame" prefWidth="100.0" text="Leave Game" />
+      <Label alignment="CENTER" contentDisplay="CENTER" layoutX="-1.0" layoutY="42.0" prefHeight="17.0" prefWidth="600.0" text="The Checkers Game ">
+         <font>
+            <Font name="System Bold" size="35.0" />
+         </font></Label>
+      <Separator layoutX="149.0" layoutY="679.0" orientation="VERTICAL" prefHeight="106.0" prefWidth="0.0" />
+      <Separator layoutX="433.0" layoutY="678.0" orientation="VERTICAL" prefHeight="106.0" prefWidth="0.0" />
+      <Button fx:id="startGameButton" disable="true" layoutX="318.0" layoutY="702.0" mnemonicParsing="false" prefHeight="60.0" prefWidth="100.0" text="Start Game" />
+   </children>
+</AnchorPane>

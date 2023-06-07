@@ -1,6 +1,7 @@
 package com.example.client.controllers;
 import com.example.client.ServerConnection;
 import com.example.client.ServerResponseListener;
+import com.example.client.UserSession;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -16,6 +17,8 @@ import java.io.IOException;
 public class LoginController implements ServerResponseListener {
 
     private ServerConnection serverConnection;
+
+    private UserSession userSession;
     private Stage stage;
     private Scene scene;
     private Parent root;
@@ -42,6 +45,7 @@ public class LoginController implements ServerResponseListener {
             String username = usernameTextField.getText();
             String password = passwordTextField.getText();
 
+            userSession = UserSession.getInstance(username, password);
             serverConnection.sendRequest("login " + username + " " + password);
         }
     }
@@ -60,9 +64,21 @@ public class LoginController implements ServerResponseListener {
         controller.setServerConnection(serverConnection);
     }
 
-    public void switchToLobby(){
-        //TODO
+    @FXML
+    private void switchToLobby() throws IOException {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/LobbyScene.fxml"));
+        Parent root = loader.load(); // folosim aici obiectul 'loader'
+        stage = (Stage)usernameTextField.getScene().getWindow();
+        scene = new Scene(root);
+        stage.setScene(scene);
+        stage.show();
+
+        // obtin noul controller si ii setez conexiunea la server
+        LobbyController controller = loader.getController(); // 'loader' este acum cunoscut
+        controller.setServerConnection(serverConnection);
     }
+
+
 
     public void setServerConnection(ServerConnection serverConnection) {
         this.serverConnection = serverConnection;
@@ -73,16 +89,23 @@ public class LoginController implements ServerResponseListener {
     public void onServerResponse(String response) {
         if (response.startsWith("login")) {
             if(response.equals("login failed username_not_registered")){
+                userSession.clearUserSession();
                 errorLabel.setText("Username not registered!");
             }
             if(response.equals("login failed wrong_password")){
+                userSession.clearUserSession();
                 errorLabel.setText("Wrong password!");
             }
             if(response.equals("login failed already_online")){
+                userSession.clearUserSession();
                 errorLabel.setText("User already online!");
             }
             if(response.equals("login ok")){
-                switchToLobby();
+                try {
+                    switchToLobby();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
                 errorLabel.setText("");
             }
         }

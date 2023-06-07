@@ -2,6 +2,7 @@ package com.example.client.controllers;
 
 import com.example.client.ServerConnection;
 import com.example.client.ServerResponseListener;
+import com.example.client.UserSession;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -16,6 +17,7 @@ import java.io.IOException;
 
 public class RegisterController implements ServerResponseListener {
     private ServerConnection serverConnection;
+    private UserSession userSession;
     private Stage stage;
     private Scene scene;
     private Parent root;
@@ -43,6 +45,7 @@ public class RegisterController implements ServerResponseListener {
             String retypePassword = retypePasswordTextField.getText();
 
             if(password.equals(retypePassword)){
+                userSession = UserSession.getInstance(username, password);
                 serverConnection.sendRequest("register " + username + " " + password);
             } else {
                 errorLabel.setText("Passwords don't match!");
@@ -65,8 +68,18 @@ public class RegisterController implements ServerResponseListener {
         controller.setServerConnection(serverConnection);
     }
 
-    public void switchToLobby(){
-        //TODO
+    @FXML
+    private void switchToLobby() throws IOException {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/LobbyScene.fxml"));
+        Parent root = loader.load(); // folosim aici obiectul 'loader'
+        stage = (Stage)usernameTextField.getScene().getWindow();
+        scene = new Scene(root);
+        stage.setScene(scene);
+        stage.show();
+
+        // obtin noul controller si ii setez conexiunea la server
+        LobbyController controller = loader.getController(); // 'loader' este acum cunoscut
+        controller.setServerConnection(serverConnection);
     }
 
     public void setServerConnection(ServerConnection serverConnection) {
@@ -79,10 +92,15 @@ public class RegisterController implements ServerResponseListener {
         System.out.println("Am primit de la server: " + response);
         if (response.startsWith("register")){
             if (response.equals("register failed username_already_exists")){
+                userSession.clearUserSession();
                 errorLabel.setText("Username already exists!");
             }
             if(response.equals("register ok")){
-                switchToLobby();
+                try {
+                    switchToLobby();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
                 errorLabel.setText("");
             }
         }
