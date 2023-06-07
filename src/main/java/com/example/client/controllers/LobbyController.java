@@ -20,6 +20,7 @@ import javafx.util.Duration;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import static java.lang.Integer.parseInt;
 
@@ -178,10 +179,12 @@ public class LobbyController implements ServerResponseListener {
             deleteGameButton.setDisable(true);
         }
         if(responseWords[0].equals("game_joined")){
+            userSession.setGameId(Integer.parseInt(responseWords[1]));
             leaveGameButton.setDisable(false);
             createGameButton.setDisable(true);
         }
         if(responseWords[0].equals("game_left")){
+            userSession.setGameId(0);
             leaveGameButton.setDisable(true);
             createGameButton.setDisable(false);
         }
@@ -230,7 +233,7 @@ public class LobbyController implements ServerResponseListener {
         }
         if(userSession.getGameId() != 0 && !gamesList.isEmpty()) {
             for (Game game : gamesList) {
-                if (Integer.parseInt(game.getId()) == userSession.getGameId() && !game.getPlayer2().equals("")) {
+                if (Integer.parseInt(game.getId()) == userSession.getGameId()&& game.getPlayer1().equals(userSession.getUsername()) && !game.getPlayer2().equals("")) {
                     startGameButton.setDisable(false);
                     break;
                 }
