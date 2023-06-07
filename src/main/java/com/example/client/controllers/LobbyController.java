@@ -79,7 +79,7 @@ public class LobbyController implements ServerResponseListener {
         // 1. Adaugăm un ascultător la selecția din TableView
         gamesTableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             // 2. Verificăm dacă jucătorul 2 este gol
-            if (newSelection != null && newSelection.getPlayer2().isEmpty()) {
+            if (newSelection != null && newSelection.getPlayer2().isEmpty() && userSession.getGameId() == 0) {
                 // Dacă este, activăm butonul joinGame
                 joinGameButton.setDisable(false);
             } else {
@@ -129,6 +129,7 @@ public class LobbyController implements ServerResponseListener {
     private void joinGame(ActionEvent actionEvent){
         Game selectedGame = gamesTableView.getSelectionModel().getSelectedItem();
         serverConnection.sendRequest("join_game " + selectedGame.getId() + " " + userSession.getUsername());
+        leaveGameButton.setDisable(false);
         if(userSession.getGameId() != 0){
             serverConnection.sendRequest("delete_game " + userSession.getGameId());
         }
@@ -141,8 +142,11 @@ public class LobbyController implements ServerResponseListener {
     @FXML
     private void logout(ActionEvent actionEvent) {
         serverConnection.sendRequest("logout " + userSession.getUsername());
-        userSession.clearUserSession();
         stopSendingUpdateRequests();
+        if(userSession.getGameId() != 0) {
+            serverConnection.sendRequest("delete_game " + userSession.getGameId());
+        }
+        userSession.clearUserSession();
         try {
             switchToLogin();
         } catch (IOException e) {
@@ -180,6 +184,7 @@ public class LobbyController implements ServerResponseListener {
             deleteGameButton.setDisable(true);
         }
         if(responseWords[0].equals("game_joined")){
+            leaveGameButton.setDisable(false);
             userSession.setGameId(Integer.parseInt(responseWords[1]));
         }
         if(responseWords[0].equals("game_left")){
