@@ -132,6 +132,7 @@ public class LobbyController implements ServerResponseListener {
         if(userSession.getGameId() != 0){
             serverConnection.sendRequest("delete_game " + userSession.getGameId());
         }
+
     }
     @FXML
     private void leaveGame(ActionEvent actionEvent){
@@ -180,8 +181,6 @@ public class LobbyController implements ServerResponseListener {
         }
         if(responseWords[0].equals("game_joined")){
             userSession.setGameId(Integer.parseInt(responseWords[1]));
-            leaveGameButton.setDisable(false);
-            createGameButton.setDisable(true);
         }
         if(responseWords[0].equals("game_left")){
             userSession.setGameId(0);
@@ -191,7 +190,7 @@ public class LobbyController implements ServerResponseListener {
     }
     private void startSendingUpdateRequests(){
         Timeline timeline = new Timeline(
-                new KeyFrame(Duration.seconds(10), event -> {
+                new KeyFrame(Duration.seconds(3), event -> {
                     serverConnection.sendRequest("get_players_list");
                     serverConnection.sendRequest("get_games_list");
                 })
