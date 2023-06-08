@@ -1,6 +1,11 @@
 package com.example.client.controllers;
 
-import com.example.client.*;
+import com.example.client.serverConnection.ServerConnection;
+import com.example.client.serverConnection.ServerResponseListener;
+import com.example.client.sessions.GameSession;
+import com.example.client.sessions.UserSession;
+import com.example.client.supportClasses.Game;
+import com.example.client.supportClasses.Player;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.collections.FXCollections;
@@ -19,22 +24,17 @@ import javafx.util.Duration;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 
 import static java.lang.Integer.parseInt;
 
 public class LobbyController implements ServerResponseListener {
     private ServerConnection serverConnection;
     UserSession userSession = UserSession.getInstance();
+    GameSession gameSession = GameSession.getInstance();
     private Timeline timeline;
-
-    List<Player> playersList = new ArrayList<>();
-    List<Game> gamesList = new ArrayList<>();
 
     private Stage stage;
     private Scene scene;
-    private Parent root;
 
     @FXML
     private TableView<Player> playersTableView;
@@ -67,30 +67,22 @@ public class LobbyController implements ServerResponseListener {
     Button exitButton;
 
     public void initialize() {
-        // Setează proprietatea pentru fiecare coloană a tabelului de jucători
         usernameColumn.setCellValueFactory(new PropertyValueFactory<Player, String>("name"));
         statusColumn.setCellValueFactory(new PropertyValueFactory<Player, String>("status"));
 
-        // Setează proprietatea pentru fiecare coloană a tabelului de jocuri
         idColumn.setCellValueFactory(new PropertyValueFactory<Game, String>("id"));
         player1Column.setCellValueFactory(new PropertyValueFactory<Game, String>("player1"));
         player2Column.setCellValueFactory(new PropertyValueFactory<Game, String>("player2"));
 
-        // 1. Adaugăm un ascultător la selecția din TableView
         gamesTableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-            // 2. Verificăm dacă jucătorul 2 este gol
-            if (newSelection != null && newSelection.getPlayer2().isEmpty()) {
-                // Dacă este, activăm butonul joinGame
+            if (newSelection != null && newSelection.getPlayer2().isEmpty() && userSession.getGameId()==0) {
                 joinGameButton.setDisable(false);
             } else {
-                // Altfel, îl dezactivăm
                 joinGameButton.setDisable(true);
             }
         });
 
-// 3. Adăugăm un handler pentru evenimentul de click al butonului joinGame
         joinGameButton.setOnAction(event -> {
-            // Aflăm care este jocul selectat
             Game selectedGame = gamesTableView.getSelectionModel().getSelectedItem();
             // Trimitem mesajul la server
             serverConnection.sendRequest("join_game " + selectedGame.getId() + " " + userSession.getUsername());
@@ -116,10 +108,25 @@ public class LobbyController implements ServerResponseListener {
         LoginController controller = loader.getController(); // 'loader' este acum cunoscut
         controller.setServerConnection(serverConnection);
     }
+
+    @FXML
+    public void switchToGame() throws  IOException{
+      FXMLLoader loader = new FXMLLoader(getClass().getResource("GameScene.fxml"));
+      Parent root = loader.load();
+      stage = (Stage)logoutButton.getScene().getWindow();
+      scene = new Scene(root);
+      stage.setScene(scene);
+      stage.show();
+
+      GameController controller = loader.getController();
+      controller.setServerConnection(serverConnection);
+    }
+
     @FXML
     private void createGame(ActionEvent actionEvent) {
         serverConnection.sendRequest("create_game " + userSession.getUsername());
     }
+
     @FXML
     private void deleteGame(ActionEvent actionEvent){
         serverConnection.sendRequest("delete_game " + userSession.getGameId());
@@ -129,6 +136,7 @@ public class LobbyController implements ServerResponseListener {
     private void joinGame(ActionEvent actionEvent){
         Game selectedGame = gamesTableView.getSelectionModel().getSelectedItem();
         serverConnection.sendRequest("join_game " + selectedGame.getId() + " " + userSession.getUsername());
+        leaveGameButton.setDisable(false);
         if(userSession.getGameId() != 0){
             serverConnection.sendRequest("delete_game " + userSession.getGameId());
         }
@@ -137,18 +145,28 @@ public class LobbyController implements ServerResponseListener {
     @FXML
     private void leaveGame(ActionEvent actionEvent){
         serverConnection.sendRequest("leave_game " + userSession.getGameId());
+
     }
+
+    public void startGame(ActionEvent actionEvent) {
+        serverConnection.sendRequest("start_game " + userSession.getGameId());
+    }
+
     @FXML
     private void logout(ActionEvent actionEvent) {
         serverConnection.sendRequest("logout " + userSession.getUsername());
-        userSession.clearUserSession();
         stopSendingUpdateRequests();
+        if(userSession.getGameId() != 0){
+            serverConnection.sendRequest("delete_game " + userSession.getGameId());
+        }
+        userSession.clearUserSession();
         try {
             switchToLogin();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
+
     @FXML
     private void exit(ActionEvent actionEvent) {
         serverConnection.sendRequest("logout " + userSession.getUsername());
@@ -171,21 +189,51 @@ public class LobbyController implements ServerResponseListener {
 
         if(responseWords[0].equals("game_created")){
             userSession.setGameId(parseInt(responseWords[1]));
+            userSession.setPlayer1(true);
             createGameButton.setDisable(true);
             deleteGameButton.setDisable(false);
         }
         if(responseWords[0].equals("game_deleted")){
             userSession.setGameId(0);
+            userSession.setPlayer1(false);
             createGameButton.setDisable(false);
             deleteGameButton.setDisable(true);
         }
         if(responseWords[0].equals("game_joined")){
             userSession.setGameId(Integer.parseInt(responseWords[1]));
+            userSession.setPlayer1(false);
+            leaveGameButton.setDisable(false);
         }
         if(responseWords[0].equals("game_left")){
             userSession.setGameId(0);
             leaveGameButton.setDisable(true);
             createGameButton.setDisable(false);
+        }
+        if(responseWords[0].equals("waiting_room_status")){
+            if(responseWords[1].equals("game_started")){
+                int gameId = Integer.parseInt(responseWords[2]);
+                String player1 = responseWords[3];
+                String player2 = responseWords[4];
+                String turn = responseWords[5];
+                GameSession.getInstance(gameId, player1, player2, turn);
+                try {
+                    switchToGame();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        if(responseWords[0].equals("game_started")){
+            int gameId = Integer.parseInt(responseWords[1]);
+            String player1 = responseWords[2];
+            String player2 = responseWords[3];
+            String turn = responseWords[4];
+            GameSession.getInstance(gameId, player1, player2, turn);
+            try {
+                switchToGame();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
     private void startSendingUpdateRequests(){
@@ -193,6 +241,9 @@ public class LobbyController implements ServerResponseListener {
                 new KeyFrame(Duration.seconds(3), event -> {
                     serverConnection.sendRequest("get_players_list");
                     serverConnection.sendRequest("get_games_list");
+                    if(userSession.getGameId() !=0 && !userSession.isPlayer1()){
+                        serverConnection.sendRequest("get_waiting_room_update " + userSession.getGameId());
+                    }
                 })
         );
 
@@ -230,9 +281,9 @@ public class LobbyController implements ServerResponseListener {
                 gameList.add(new Game(id, player1, player2));
             }
         }
-        if(userSession.getGameId() != 0 && !gamesList.isEmpty()) {
-            for (Game game : gamesList) {
-                if (Integer.parseInt(game.getId()) == userSession.getGameId()&& game.getPlayer1().equals(userSession.getUsername()) && !game.getPlayer2().equals("")) {
+        if(userSession.getGameId() != 0 && !gameList.isEmpty()) {
+            for (Game game : gameList) {
+                if (Integer.parseInt(game.getId()) == userSession.getGameId() && game.getPlayer1().equals(userSession.getUsername()) && !game.getPlayer2().equals("")) {
                     startGameButton.setDisable(false);
                     break;
                 }
@@ -241,7 +292,6 @@ public class LobbyController implements ServerResponseListener {
                 }
             }
         }
-
 
         ObservableList<Game> observableGameList = FXCollections.observableArrayList(gameList);
         gamesTableView.setItems(observableGameList);

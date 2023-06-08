@@ -1,4 +1,4 @@
-package com.example.client;
+package com.example.client.supportClasses;
 
 public class Game {
     private String id;

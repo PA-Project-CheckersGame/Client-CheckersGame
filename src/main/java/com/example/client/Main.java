@@ -1,6 +1,8 @@
 package com.example.client;
 
+import com.example.client.controllers.GameController;
 import com.example.client.controllers.LoginController;
+import com.example.client.serverConnection.ServerConnection;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;

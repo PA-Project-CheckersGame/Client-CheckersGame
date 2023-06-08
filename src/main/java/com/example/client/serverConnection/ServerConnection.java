@@ -1,4 +1,4 @@
-package com.example.client;
+package com.example.client.serverConnection;
 
 import javafx.application.Platform;
 

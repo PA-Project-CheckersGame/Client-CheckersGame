@@ -15,4 +15,10 @@ module com.example.hellofx {
     exports com.example.client;
     exports com.example.client.controllers;
     opens com.example.client.controllers to javafx.fxml;
+    exports com.example.client.sessions;
+    opens com.example.client.sessions to javafx.fxml;
+    exports com.example.client.supportClasses;
+    opens com.example.client.supportClasses to javafx.fxml;
+    exports com.example.client.serverConnection;
+    opens com.example.client.serverConnection to javafx.fxml;
 }

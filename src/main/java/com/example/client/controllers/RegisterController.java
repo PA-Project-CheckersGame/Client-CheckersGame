@@ -1,8 +1,8 @@
 package com.example.client.controllers;
 
-import com.example.client.ServerConnection;
-import com.example.client.ServerResponseListener;
-import com.example.client.UserSession;
+import com.example.client.serverConnection.ServerConnection;
+import com.example.client.serverConnection.ServerResponseListener;
+import com.example.client.sessions.UserSession;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;

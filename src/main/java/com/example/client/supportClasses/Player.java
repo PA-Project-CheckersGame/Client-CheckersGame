@@ -1,4 +1,4 @@
-package com.example.client;
+package com.example.client.supportClasses;
 
 public class Player {
     private String name = "";
