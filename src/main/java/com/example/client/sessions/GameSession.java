@@ -6,7 +6,7 @@ public class GameSession {
 
     private String player1;
     private String player2;
-    private String status;
+    private String status = "onGoing";
     private String turn = "player1";
 
     private GameSession(int gameId, String player1, String player2, String turn){
@@ -72,6 +72,6 @@ public class GameSession {
         gameId = 0;
         player1 = null;
         player2 = null;
-        status = null;
+        status = "onGoing";
     }
 }

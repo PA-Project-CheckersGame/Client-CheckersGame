@@ -87,6 +87,7 @@ public class LoginController implements ServerResponseListener {
 
     @Override
     public void onServerResponse(String response) {
+//        System.out.println("Am primit de la server: " + response);
         if (response.startsWith("login")) {
             if(response.equals("login failed username_not_registered")){
                 userSession.clearUserSession();

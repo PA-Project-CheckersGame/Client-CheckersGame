@@ -26,7 +26,7 @@ public class GameController  implements ServerResponseListener {
     private ServerConnection serverConnection;
     private UserSession userSession = UserSession.getInstance();
     private GameSession gameSession = GameSession.getInstance();
-    private Timeline timeline;
+    private Timeline gameTimeline;
 
     public static final int TILE_SIZE = 100;
     public static final int WIDTH = 8;
@@ -69,12 +69,14 @@ public class GameController  implements ServerResponseListener {
         createGameBoard();
         currentTurn = PieceType.WHITE;
         if(userSession.getUsername().equals(gameSession.getPlayer1())){
-            userColor = PieceType.RED;
-        } else if(userSession.getUsername().equals(gameSession.getPlayer2())){
             userColor = PieceType.WHITE;
+        } else if(userSession.getUsername().equals(gameSession.getPlayer2())){
+            userColor = PieceType.RED;
         }
+        setTurnLabel();
         player1UsernameLabel.setText(gameSession.getPlayer1());
         player2UsernameLabel.setText(gameSession.getPlayer2());
+        startSendingGameUpdateRequests();
     }
 
     private Parent createGameBoard() {
@@ -110,17 +112,19 @@ public class GameController  implements ServerResponseListener {
         return gameBoard;
     }
 
-    private MoveResult tryMove(Piece piece, int newX, int newY){
+    private MoveResult tryMove(Piece piece, int newX, int newY, boolean checkTurn){
 
-        if(currentTurn != userColor){
-            return new MoveResult(MoveType.NONE);
-        }
+        if(checkTurn){
+            if(currentTurn != userColor){
+                return new MoveResult(MoveType.NONE);
+            }
 
-        if(currentTurn == PieceType.RED && (piece.getType() == PieceType.WHITE || piece.getType() == PieceType.WHITE_KING)){
-            return new MoveResult(MoveType.NONE);
-        }
-        if(currentTurn == PieceType.WHITE && (piece.getType() == PieceType.RED || piece.getType() == PieceType.RED_KING)){
-            return new MoveResult(MoveType.NONE);
+            if(currentTurn == PieceType.RED && (piece.getType() == PieceType.WHITE || piece.getType() == PieceType.WHITE_KING)){
+                return new MoveResult(MoveType.NONE);
+            }
+            if(currentTurn == PieceType.WHITE && (piece.getType() == PieceType.RED || piece.getType() == PieceType.RED_KING)){
+                return new MoveResult(MoveType.NONE);
+            }
         }
 
         if(board[newX][newY].hasPiece() || (newX + newY) % 2 == 0) {
@@ -176,7 +180,7 @@ public class GameController  implements ServerResponseListener {
                 return;
             }
 
-            MoveResult result = tryMove(piece, newX, newY);
+            MoveResult result = tryMove(piece, newX, newY, true);
 
             int x0 = toBoard(piece.getOldX());
             int y0 = toBoard(piece.getOlxY());
@@ -226,6 +230,13 @@ public class GameController  implements ServerResponseListener {
     }
     private void switchTurns(){
         currentTurn = (currentTurn == PieceType.RED) ? PieceType.WHITE : PieceType.RED;
+        countPieces();
+        redPiecesCountLabel.setText(String.valueOf(redPiecesCount));
+        whitePiecesCountLabel.setText(String.valueOf(whitePiecesCount));
+        setTurnLabel();
+        checkEndGame();
+    }
+    private void setTurnLabel(){
         if(currentTurn == PieceType.RED && userColor == PieceType.RED) {
             playerTurnLabel.setText("Your Turn!");
             playerTurnLabel.setTextFill(Color.GREEN);
@@ -240,10 +251,6 @@ public class GameController  implements ServerResponseListener {
             playerTurnLabel.setText(gameSession.getPlayer1() + "'s turn!");
             playerTurnLabel.setTextFill(Color.RED);
         }
-        countPieces();
-        redPiecesCountLabel.setText(String.valueOf(redPiecesCount));
-        whitePiecesCountLabel.setText(String.valueOf(whitePiecesCount));
-        checkEndGame();
     }
     private void countPieces() {
         redPiecesCount = 0;
@@ -275,9 +282,8 @@ public class GameController  implements ServerResponseListener {
                         int newX = x + dx[dir];
                         int newY = y + dy[dir];
                         if (newX >= 0 && newY >= 0 && newX < WIDTH && newY < HEIGHT) {
-                            MoveResult result = tryMove(piece, newX, newY);
+                            MoveResult result = tryMove(piece, newX, newY, false); // Passing false to avoid turn check
                             if (result.getType() != MoveType.NONE) {
-                                System.out.println("Player " + type + " can move");
                                 return true;
                             }
                         }
@@ -285,45 +291,62 @@ public class GameController  implements ServerResponseListener {
                 }
             }
         }
-        System.out.println("Player " + type + " CAN NOT move");
         return false;
     }
 
     public void checkEndGame() {
-        if ((currentTurn == PieceType.RED && !canMove(PieceType.RED)) || redPiecesCount == 0) {
+        if (currentTurn == PieceType.RED && (redPiecesCount == 0) || (!canMove(PieceType.RED) && !canMove(PieceType.RED_KING))) {
+            stopSendingGameUpdateRequests();
             if(userColor == PieceType.RED) {
                 turnLabel.setText("Game Ended!");
                 playerTurnLabel.setText("You Lost!");
                 playerTurnLabel.setTextFill(Color.RED);
-                gameSession.setStatus("player1");
-                serverConnection.sendRequest("set_game_status game_ended won" + gameSession.getStatus());
+                gameSession.setStatus(gameSession.getPlayer1());
+                serverConnection.sendRequest("set_game_status " + gameSession.getGameId() + " game_ended_won_" + gameSession.getStatus());
+                gameSession.setStatus("game_ended");
+                leaveGameButton.setText("Go back to lobby");
+                leaveGameButton.setTextFill(Color.GREEN);
             } else if (userColor == PieceType.WHITE) {
                 turnLabel.setText("Game Ended!");
                 playerTurnLabel.setText("You Won!");
                 playerTurnLabel.setTextFill(Color.GREEN);
-                gameSession.setStatus("player1");
-                serverConnection.sendRequest("set_game_status game_ended won" + gameSession.getStatus());
+                gameSession.setStatus(gameSession.getPlayer1());
+                serverConnection.sendRequest("set_game_status " + gameSession.getGameId() + " game_ended_won_" + gameSession.getStatus());
+                gameSession.setStatus("game_ended");
+                leaveGameButton.setText("Go back to lobby");
+                leaveGameButton.setTextFill(Color.GREEN);
             }
-        } else if ((currentTurn == PieceType.WHITE &&!canMove(PieceType.WHITE)) || whitePiecesCount == 0) {
+        } else if (currentTurn == PieceType.WHITE && (whitePiecesCount == 0) || (!canMove(PieceType.WHITE) && !canMove(PieceType.WHITE_KING))) {
+            stopSendingGameUpdateRequests();
             if(userColor == PieceType.RED) {
                 turnLabel.setText("Game Ended!");
                 playerTurnLabel.setText("You Won!");
                 playerTurnLabel.setTextFill(Color.GREEN);
-                gameSession.setStatus("player2");
-                serverConnection.sendRequest("set_game_status game_ended won" + gameSession.getStatus());
+                gameSession.setStatus(gameSession.getPlayer2());
+                serverConnection.sendRequest("set_game_status " + gameSession.getGameId() + " game_ended_won_" + gameSession.getStatus());
+                gameSession.setStatus("game_ended");
+                leaveGameButton.setText("Go back to lobby");
+                leaveGameButton.setTextFill(Color.GREEN);
             } else if (userColor == PieceType.WHITE) {
                 turnLabel.setText("Game Ended!");
                 playerTurnLabel.setText("You lost!");
                 playerTurnLabel.setTextFill(Color.RED);
-                gameSession.setStatus("player2");
-                serverConnection.sendRequest("set_game_status game_ended won" + gameSession.getStatus());
+                gameSession.setStatus(gameSession.getPlayer2());
+                serverConnection.sendRequest("set_game_status " + gameSession.getGameId() + " game_ended_won_" + gameSession.getStatus());
+                gameSession.setStatus("game_ended");
+                leaveGameButton.setText("Go back to lobby");
+                leaveGameButton.setTextFill(Color.GREEN);
             }
-        }else  if (!canMove(PieceType.RED) && !canMove(PieceType.WHITE)) {
+        }else  if (!canMove(PieceType.RED) && !canMove(PieceType.WHITE) && !canMove(PieceType.RED_KING) && !canMove(PieceType.WHITE_KING)) {
+            stopSendingGameUpdateRequests();
             turnLabel.setText("Game Ended!");
             playerTurnLabel.setText("Draw!");
             playerTurnLabel.setTextFill(Color.GRAY);
             gameSession.setStatus("draw");
-            serverConnection.sendRequest("set_game_status game_ended" + gameSession.getStatus());
+            serverConnection.sendRequest("set_game_status " + gameSession.getGameId() + " game_ended_" + gameSession.getStatus());
+            gameSession.setStatus("game_ended");
+            leaveGameButton.setText("Go back to lobby");
+            leaveGameButton.setTextFill(Color.GREEN);
         }
     }
 
@@ -342,20 +365,20 @@ public class GameController  implements ServerResponseListener {
             for (int x = 0; x < WIDTH; x++) {
                 Piece piece = board[x][y].getPiece();
                 if (piece == null) {
-                    boardString.append("0 ");
+                    boardString.append("0_");
                 } else {
                     switch (piece.getType()) {
                         case WHITE:
-                            boardString.append("1 ");
+                            boardString.append("1_");
                             break;
                         case RED:
-                            boardString.append("2 ");
+                            boardString.append("2_");
                             break;
                         case WHITE_KING:
-                            boardString.append("3 ");
+                            boardString.append("3_");
                             break;
                         case RED_KING:
-                            boardString.append("4 ");
+                            boardString.append("4_");
                             break;
                     }
                 }
@@ -368,8 +391,8 @@ public class GameController  implements ServerResponseListener {
         String[] values = boardString.split(" ");
 
         String gameUpdate = values[0]; // "game_update"
-        String gameStatus = values[1]; // "turn"
-        if(gameStatus.equals(userSession.getUsername())){
+        String turn = values[1]; // "turn"
+        if(turn.equals(userSession.getUsername())){
             currentTurn = userColor;
         }else {
             if (userColor == PieceType.RED){
@@ -378,6 +401,7 @@ public class GameController  implements ServerResponseListener {
                 currentTurn = PieceType.RED;
             }
         }
+            setTurnLabel();
 
         // Clear the current board pieces
         pieceGroup.getChildren().clear();
@@ -389,10 +413,12 @@ public class GameController  implements ServerResponseListener {
 
         // Populate the board with new pieces based on the input string
         // Start from index 2 because the first two elements are the status words
+        String[] gameBoard = values[2].split("_");
+        int gameBoardIndex = 0;
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
-                int index = (y * WIDTH + x) + 2; // "+ 2" to skip the status words
-                String value = values[index];
+                //int index = (y * WIDTH + x) + 2; // "+ 2" to skip the status words
+                String value = gameBoard[gameBoardIndex];
                 Piece piece = null;
 
                 switch (value) {
@@ -414,15 +440,15 @@ public class GameController  implements ServerResponseListener {
                     board[x][y].setPiece(piece);
                     pieceGroup.getChildren().add(piece);
                 }
+                gameBoardIndex++;
             }
         }
-
-        // Optionally, use gameUpdate and gameStatus variables as needed.
     }
 
     public void setServerConnection(ServerConnection serverConnection) {
         this.serverConnection = serverConnection;
         this.serverConnection.addListener(this);
+
     }
 
     @Override
@@ -433,69 +459,59 @@ public class GameController  implements ServerResponseListener {
 
         String[] values = response.split(" ");
         if(values[0].equals("game_status")){
-            if(values[1].equals("game_ended")){
+            String[] status = values[1].split("_");
+            if(status[0].equals("game") && status[1].equals("ended")){
+                stopSendingGameUpdateRequests();
                 turnLabel.setText("Game ended!");
                 gameSession.setStatus("game_ended");
-                if(values[2].equals("won")){
-                    if(values[3].equals("player1")){
-                        if(userSession.getUsername().equals(gameSession.getPlayer1())){
-                            playerTurnLabel.setText("You won!");
-                            playerTurnLabel.setTextFill(Color.GREEN);
-                        }else {
-                            playerTurnLabel.setText("You lost!");
-                            playerTurnLabel.setTextFill(Color.RED);
-                        }
-                    }else if(values[3].equals("player2")){
-                        if(userSession.getUsername().equals(gameSession.getPlayer2())){
-                            playerTurnLabel.setText("You won!");
-                            playerTurnLabel.setTextFill(Color.GREEN);
-                        }else {
-                            playerTurnLabel.setText("You lost!");
-                            playerTurnLabel.setTextFill(Color.RED);
-                        }
+                if(status[2].equals("won")){ System.out.println("Am trecut de al doilea IF cu: " + status[2]);
+                    System.out.println("Acum verific numele utilizatrorului: " + status[3] + " VS " + userSession.getUsername());
+                    if(status[3].equals(userSession.getUsername())){
+                       playerTurnLabel.setText("You won!");
+                       playerTurnLabel.setTextFill(Color.GREEN);
+                    }else{
+                        playerTurnLabel.setText("You lost!");
+                        playerTurnLabel.setTextFill(Color.RED);
                     }
-                } else if (values[2].equals("draw")) {
+                } else if (status[2].equals("draw")) {
                     playerTurnLabel.setText("Draw!");
                     playerTurnLabel.setTextFill(Color.GRAY);
-                } else if (values[2].equals("forfeit")){
-                    if(values[3].equals("player1")){
-                        if(userSession.getUsername().equals(gameSession.getPlayer2())){
-                            playerTurnLabel.setText("You won!");
-                            playerTurnLabel.setTextFill(Color.GREEN);
-                        }
-                    }else if(values[3].equals("player2")){
-                        if(userSession.getUsername().equals(gameSession.getPlayer1())){
-                            playerTurnLabel.setText("You won!");
-                            playerTurnLabel.setTextFill(Color.GREEN);
-                        }
+                } else if (status[2].equals("forfeit")){
+                    if(!status[3].equals(userSession.getUsername())) {
+                        playerTurnLabel.setText("You won!");
+                        playerTurnLabel.setTextFill(Color.GREEN);
                     }
                 }
-                stopSendingUpdateRequests();
+                gameSession.setStatus("game_ended");
                 leaveGameButton.setText("Go back to lobby");
                 leaveGameButton.setTextFill(Color.GREEN);
             }
         }
     }
 
-    private void startSendingUpdateRequests(){
-        Timeline timeline = new Timeline(
-                new KeyFrame(Duration.seconds(3), event -> {
-                    serverConnection.sendRequest("get_game_update " + gameSession.getGameId());
+    private void startSendingGameUpdateRequests(){
+         gameTimeline = new Timeline(
+                new KeyFrame(Duration.seconds(1), event -> {
                     serverConnection.sendRequest("get_game_status " + gameSession.getGameId());
+                    if(!currentTurn.equals(userColor)){
+                        serverConnection.sendRequest("get_game_update " + gameSession.getGameId());
+                    }
                 })
         );
 
-        timeline.setCycleCount(Timeline.INDEFINITE);
-        timeline.play();
+        gameTimeline.setCycleCount(Timeline.INDEFINITE);
+        gameTimeline.play();
     }
-    public void stopSendingUpdateRequests() {
-        if (timeline != null) {
-            timeline.stop();
+    public void stopSendingGameUpdateRequests() {
+        if (gameTimeline != null) {
+            gameTimeline.stop();
         }
     }
 
+    @FXML
     public void leaveGame(ActionEvent actionEvent) {
         if(gameSession.getStatus().equals("game_ended")){
+            serverConnection.sendRequest("delete_active_game " + gameSession.getGameId());
             gameSession.clearGameSession();
             userSession.setGameId(0);
             try {
@@ -504,10 +520,11 @@ public class GameController  implements ServerResponseListener {
                 throw new RuntimeException(e);
             }
         }else {
-            serverConnection.sendRequest("set_status game_ended forfeit " + userSession.getUsername());
+            serverConnection.sendRequest("set_game_status " + gameSession.getGameId() + " game_ended_forfeit_" + userSession.getUsername());
+//            serverConnection.sendRequest("delete_active_game " + gameSession.getGameId());
             gameSession.clearGameSession();
             userSession.setGameId(0);
-            stopSendingUpdateRequests();
+            stopSendingGameUpdateRequests();
             try {
                 switchToLobby();
             } catch (IOException e) {
@@ -531,12 +548,11 @@ public class GameController  implements ServerResponseListener {
         controller.setServerConnection(serverConnection);
     }
 
-
     public void exitGame(ActionEvent actionEvent) {
         serverConnection.sendRequest("logout " + userSession.getUsername());
         gameSession.clearGameSession();
         userSession.clearUserSession();
-        stopSendingUpdateRequests();
+        stopSendingGameUpdateRequests();
         Stage stage = (Stage) exitGameButton.getScene().getWindow();
         stage.close();
     }

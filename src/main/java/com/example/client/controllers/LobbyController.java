@@ -31,7 +31,7 @@ public class LobbyController implements ServerResponseListener {
     private ServerConnection serverConnection;
     UserSession userSession = UserSession.getInstance();
     GameSession gameSession = GameSession.getInstance();
-    private Timeline timeline;
+    private Timeline lobbyTimeline;
 
     private Stage stage;
     private Scene scene;
@@ -92,7 +92,7 @@ public class LobbyController implements ServerResponseListener {
     public void setServerConnection(ServerConnection serverConnection) {
         this.serverConnection = serverConnection;
         this.serverConnection.addListener(this);
-        startSendingUpdateRequests();
+        startSendingLobbyUpdateRequests();
     }
 
     @FXML
@@ -111,7 +111,8 @@ public class LobbyController implements ServerResponseListener {
 
     @FXML
     public void switchToGame() throws  IOException{
-      FXMLLoader loader = new FXMLLoader(getClass().getResource("GameScene.fxml"));
+      stopSendingLobbyUpdateRequests();
+      FXMLLoader loader = new FXMLLoader(getClass().getResource("/GameScene.fxml"));
       Parent root = loader.load();
       stage = (Stage)logoutButton.getScene().getWindow();
       scene = new Scene(root);
@@ -155,7 +156,7 @@ public class LobbyController implements ServerResponseListener {
     @FXML
     private void logout(ActionEvent actionEvent) {
         serverConnection.sendRequest("logout " + userSession.getUsername());
-        stopSendingUpdateRequests();
+        stopSendingLobbyUpdateRequests();
         if(userSession.getGameId() != 0){
             serverConnection.sendRequest("delete_game " + userSession.getGameId());
         }
@@ -171,7 +172,7 @@ public class LobbyController implements ServerResponseListener {
     private void exit(ActionEvent actionEvent) {
         serverConnection.sendRequest("logout " + userSession.getUsername());
         userSession.clearUserSession();
-        stopSendingUpdateRequests();
+        stopSendingLobbyUpdateRequests();
         Stage stage = (Stage) exitButton.getScene().getWindow();
         stage.close();
     }
@@ -188,39 +189,52 @@ public class LobbyController implements ServerResponseListener {
         String[] responseWords = response.split(" ");
 
         if(responseWords[0].equals("game_created")){
+            System.out.println("Am primit de la server: " + response);
             userSession.setGameId(parseInt(responseWords[1]));
             userSession.setPlayer1(true);
             createGameButton.setDisable(true);
             deleteGameButton.setDisable(false);
         }
         if(responseWords[0].equals("game_deleted")){
+            System.out.println("Am primit de la server: " + response);
             userSession.setGameId(0);
             userSession.setPlayer1(false);
             createGameButton.setDisable(false);
             deleteGameButton.setDisable(true);
         }
         if(responseWords[0].equals("game_joined")){
+            System.out.println("Am primit de la server: " + response);
             userSession.setGameId(Integer.parseInt(responseWords[1]));
             userSession.setPlayer1(false);
             leaveGameButton.setDisable(false);
+            createGameButton.setDisable(true);
         }
         if(responseWords[0].equals("game_left")){
+            System.out.println("Am primit de la server: " + response);
             userSession.setGameId(0);
             leaveGameButton.setDisable(true);
             createGameButton.setDisable(false);
         }
-        if(responseWords[0].equals("waiting_room_status")){
+        if(responseWords[0].equals("waiting_room_update")){
+            System.out.println("Am primit de la server: " + response);
             if(responseWords[1].equals("game_started")){
                 int gameId = Integer.parseInt(responseWords[2]);
                 String player1 = responseWords[3];
                 String player2 = responseWords[4];
                 String turn = responseWords[5];
                 GameSession.getInstance(gameId, player1, player2, turn);
+                stopSendingLobbyUpdateRequests();
                 try {
                     switchToGame();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
+            }
+            if(responseWords[1].equals("game_deleted")){
+                userSession.setGameId(0);
+                userSession.setPlayer1(true);
+                createGameButton.setDisable(false);
+                leaveGameButton.setDisable(true);
             }
         }
         if(responseWords[0].equals("game_started")){
@@ -229,6 +243,7 @@ public class LobbyController implements ServerResponseListener {
             String player2 = responseWords[3];
             String turn = responseWords[4];
             GameSession.getInstance(gameId, player1, player2, turn);
+            stopSendingLobbyUpdateRequests();
             try {
                 switchToGame();
             } catch (IOException e) {
@@ -236,24 +251,24 @@ public class LobbyController implements ServerResponseListener {
             }
         }
     }
-    private void startSendingUpdateRequests(){
-        Timeline timeline = new Timeline(
+    private void startSendingLobbyUpdateRequests() {
+        lobbyTimeline = new Timeline(
                 new KeyFrame(Duration.seconds(3), event -> {
                     serverConnection.sendRequest("get_players_list");
                     serverConnection.sendRequest("get_games_list");
-                    if(userSession.getGameId() !=0 && !userSession.isPlayer1()){
+                    if (userSession.getGameId() != 0 && !userSession.isPlayer1()) {
                         serverConnection.sendRequest("get_waiting_room_update " + userSession.getGameId());
                     }
                 })
         );
 
-        timeline.setCycleCount(Timeline.INDEFINITE);
-        timeline.play();
+        lobbyTimeline.setCycleCount(Timeline.INDEFINITE);
+        lobbyTimeline.play();
     }
 
-    public void stopSendingUpdateRequests() {
-        if (timeline != null) {
-            timeline.stop();
+    public void stopSendingLobbyUpdateRequests() {
+        if (lobbyTimeline != null) {
+            lobbyTimeline.stop();
         }
     }
 
