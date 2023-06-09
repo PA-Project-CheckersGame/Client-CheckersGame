@@ -30,13 +30,8 @@ public class LoginController implements ServerResponseListener {
     @FXML
     Label errorLabel;
 
-    public LoginController(){}
-
-
-
     @FXML
     private void login(javafx.event.ActionEvent event) {
-        //extracting credentials from TextFields
         if(usernameTextField.getText().isEmpty()){
             errorLabel.setText("Username can't be empty");
         }else if(passwordTextField.getText().isEmpty()){
@@ -53,32 +48,30 @@ public class LoginController implements ServerResponseListener {
     @FXML
     private void switchToRegister(MouseEvent event) throws IOException {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/RegisterScene.fxml"));
-        Parent root = loader.load(); // folosim aici obiectul 'loader'
+        Parent root = loader.load();
         stage = (Stage)((Node)event.getSource()).getScene().getWindow();
         scene = new Scene(root);
         stage.setScene(scene);
         stage.show();
 
-        // obtin noul controller si ii setez conexiunea la server
-        RegisterController controller = loader.getController(); // 'loader' este acum cunoscut
+
+        RegisterController controller = loader.getController();
         controller.setServerConnection(serverConnection);
     }
 
     @FXML
     private void switchToLobby() throws IOException {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/LobbyScene.fxml"));
-        Parent root = loader.load(); // folosim aici obiectul 'loader'
+        Parent root = loader.load();
         stage = (Stage)usernameTextField.getScene().getWindow();
         scene = new Scene(root);
         stage.setScene(scene);
         stage.show();
 
-        // obtin noul controller si ii setez conexiunea la server
-        LobbyController controller = loader.getController(); // 'loader' este acum cunoscut
+
+        LobbyController controller = loader.getController();
         controller.setServerConnection(serverConnection);
     }
-
-
 
     public void setServerConnection(ServerConnection serverConnection) {
         this.serverConnection = serverConnection;
@@ -87,7 +80,6 @@ public class LoginController implements ServerResponseListener {
 
     @Override
     public void onServerResponse(String response) {
-//        System.out.println("Am primit de la server: " + response);
         if (response.startsWith("login")) {
             if(response.equals("login failed username_not_registered")){
                 userSession.clearUserSession();

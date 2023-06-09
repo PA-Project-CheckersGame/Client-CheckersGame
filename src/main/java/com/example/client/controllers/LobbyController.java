@@ -30,7 +30,6 @@ import static java.lang.Integer.parseInt;
 public class LobbyController implements ServerResponseListener {
     private ServerConnection serverConnection;
     UserSession userSession = UserSession.getInstance();
-    GameSession gameSession = GameSession.getInstance();
     private Timeline lobbyTimeline;
 
     private Stage stage;
@@ -84,7 +83,6 @@ public class LobbyController implements ServerResponseListener {
 
         joinGameButton.setOnAction(event -> {
             Game selectedGame = gamesTableView.getSelectionModel().getSelectedItem();
-            // Trimitem mesajul la server
             serverConnection.sendRequest("join_game " + selectedGame.getId() + " " + userSession.getUsername());
         });
     }
@@ -98,14 +96,14 @@ public class LobbyController implements ServerResponseListener {
     @FXML
     public void switchToLogin() throws IOException {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/LoginScene.fxml"));
-        Parent root = loader.load(); // folosim aici obiectul 'loader'
+        Parent root = loader.load();
         stage = (Stage)logoutButton.getScene().getWindow();
         scene = new Scene(root);
         stage.setScene(scene);
         stage.show();
 
-        // obtin noul controller si ii setez conexiunea la server
-        LoginController controller = loader.getController(); // 'loader' este acum cunoscut
+
+        LoginController controller = loader.getController();
         controller.setServerConnection(serverConnection);
     }
 
@@ -114,7 +112,7 @@ public class LobbyController implements ServerResponseListener {
       stopSendingLobbyUpdateRequests();
       FXMLLoader loader = new FXMLLoader(getClass().getResource("/GameScene.fxml"));
       Parent root = loader.load();
-      stage = (Stage)logoutButton.getScene().getWindow();
+      stage = (Stage)playersTableView.getScene().getWindow();
       scene = new Scene(root);
       stage.setScene(scene);
       stage.show();
@@ -189,34 +187,29 @@ public class LobbyController implements ServerResponseListener {
         String[] responseWords = response.split(" ");
 
         if(responseWords[0].equals("game_created")){
-            System.out.println("Am primit de la server: " + response);
             userSession.setGameId(parseInt(responseWords[1]));
             userSession.setPlayer1(true);
             createGameButton.setDisable(true);
             deleteGameButton.setDisable(false);
         }
         if(responseWords[0].equals("game_deleted")){
-            System.out.println("Am primit de la server: " + response);
             userSession.setGameId(0);
             userSession.setPlayer1(false);
             createGameButton.setDisable(false);
             deleteGameButton.setDisable(true);
         }
         if(responseWords[0].equals("game_joined")){
-            System.out.println("Am primit de la server: " + response);
             userSession.setGameId(Integer.parseInt(responseWords[1]));
             userSession.setPlayer1(false);
             leaveGameButton.setDisable(false);
             createGameButton.setDisable(true);
         }
         if(responseWords[0].equals("game_left")){
-            System.out.println("Am primit de la server: " + response);
             userSession.setGameId(0);
             leaveGameButton.setDisable(true);
             createGameButton.setDisable(false);
         }
         if(responseWords[0].equals("waiting_room_update")){
-            System.out.println("Am primit de la server: " + response);
             if(responseWords[1].equals("game_started")){
                 int gameId = Integer.parseInt(responseWords[2]);
                 String player1 = responseWords[3];
